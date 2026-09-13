@@ -96,6 +96,36 @@ def create_car_distribution() -> CarDistribution:
     )
 
 
+def create_joint_car_distribution() -> pd.Series:
+    """Create the full joint distribution of cars as a pandas Series.
+
+    Enumerates all 38 support states and computes each probability via the
+    product rule p(brand, horsepower, color) = p(brand) * p(horsepower | brand) * p(color | brand),
+    so the joint is exactly equivalent to the factorized representation.
+
+    Returns:
+        pd.Series: Probability of each joint state, indexed by the MultiIndex
+            (brand, horsepower, color) with the category names, and summing
+            to one.
+    """
+    car_distribution = create_car_distribution()
+    # full joint via the product rule p(brand, horsepower, color) = p(brand) * p(horsepower | brand) * p(color | brand)
+    joint = pd.Series(
+        {
+            (car_distribution.brand_names[brand], int(horsepower), car_distribution.color_names[color]): car_distribution.brand_rv.pmf(brand)
+            * car_distribution.horsepower_rvs[brand].pmf(horsepower)
+            * car_distribution.color_rvs[brand].pmf(color)
+            for brand in car_distribution.horsepower_rvs
+            for horsepower in car_distribution.horsepower_rvs[brand].xk
+            for color in car_distribution.color_rvs[brand].xk
+        },
+        name="p",
+    )
+    # named index levels for readable selection, e.g. joint.xs("Porsche", level="brand")
+    joint.index.names = ["brand", "horsepower", "color"]
+    return joint
+
+
 def sample_from_car_distribution(n_cars: int, random_state: int | np.random.Generator | None = None) -> pd.DataFrame:
     """Sample cars from the joint car distribution.
 

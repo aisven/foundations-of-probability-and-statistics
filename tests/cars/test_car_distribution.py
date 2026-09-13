@@ -15,6 +15,7 @@ from foundations_of_probability_and_statistics.cars.car_distribution import (
     VW,
     YELLOW,
     create_car_distribution,
+    create_joint_car_distribution,
     sample_from_car_distribution,
 )
 
@@ -215,3 +216,45 @@ def test_empirical_joint_within_brand_matches_conditional_product():
                 color = car_distribution.color_names[c]
                 empirical = ((sub["horsepower"] == h) & (sub["color"] == color)).mean()
                 assert empirical == pytest.approx(p_h * p_c, abs=0.01)
+
+
+def test_joint_car_distribution_support_and_normalization():
+    joint = create_joint_car_distribution()
+
+    # 9 + 20 + 9 support states, non-negative, normalized, with the expected index
+    assert len(joint) == 38
+    assert (joint >= 0).all()
+    assert joint.sum() == pytest.approx(1.0)
+    assert joint.index.names == ["brand", "horsepower", "color"]
+    assert set(joint.index.get_level_values("brand")) == {"VW", "Porsche", "Ferrari"}
+
+
+def test_joint_car_distribution_matches_factorization():
+    car_distribution = create_car_distribution()
+    joint = create_joint_car_distribution()
+
+    # spot checks of p(b, h, c) = p(b) p(h | b) p(c | b)
+    expected_vw = car_distribution.brand_rv.pmf(VW) * car_distribution.horsepower_rvs[VW].pmf(100) * car_distribution.color_rvs[VW].pmf(BLUE)
+    expected_porsche = (
+        car_distribution.brand_rv.pmf(PORSCHE) * car_distribution.horsepower_rvs[PORSCHE].pmf(600) * car_distribution.color_rvs[PORSCHE].pmf(BLACK)
+    )
+    expected_ferrari = car_distribution.brand_rv.pmf(FERRARI) * car_distribution.horsepower_rvs[FERRARI].pmf(500) * car_distribution.color_rvs[FERRARI].pmf(RED)
+    assert joint.loc[("VW", 100, "blue")] == pytest.approx(expected_vw)
+    assert joint.loc[("Porsche", 600, "black")] == pytest.approx(expected_porsche)
+    assert joint.loc[("Ferrari", 500, "red")] == pytest.approx(expected_ferrari)
+
+
+def test_marginals_and_conditionals_recovered_from_joint():
+    joint = create_joint_car_distribution()
+
+    # marginalizing the joint over (horsepower, color) recovers the brand marginals
+    brand_marginal = joint.groupby(level=0).sum()
+    assert brand_marginal["VW"] == pytest.approx(0.5)
+    assert brand_marginal["Porsche"] == pytest.approx(0.3)
+    assert brand_marginal["Ferrari"] == pytest.approx(0.2)
+
+    # normalizing within a brand recovers the conditional p(horsepower | brand)
+    conditional = joint.xs("Porsche", level="brand").groupby(level=0).sum()
+    conditional = conditional / conditional.sum()
+    assert conditional.loc[600] == pytest.approx(0.05)
+    assert conditional.loc[700] == pytest.approx(0.05)
