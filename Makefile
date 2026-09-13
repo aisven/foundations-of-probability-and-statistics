@@ -20,7 +20,8 @@ format-and-lint-code:       ## format and lint code with ruff
 
 .PHONY : test
 test:                       ## run tests
-	uv run pytest -vv -s
+	uv run pytest -vv -s --cov=foundations_of_probability_and_statistics --cov-report=term-missing
+#	uv run pytest -vv -s --cov=foundations_of_probability_and_statistics --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest-report.xml
 
 .PHONY: clean
 clean:                      ## clean all
