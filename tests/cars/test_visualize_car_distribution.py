@@ -26,4 +26,16 @@ def test_visualize_joint_car_distribution_in_histogram():
     assert {label.split(",")[0] for label in labels} == {"VW", "Porsche", "Ferrari"}
     assert {label.split(" ")[1] for label in labels} == {"100", "200", "300", "400", "500", "600", "700"}
 
+    # within each brand, bars get darker as horsepower increases
+    colors = [patch.get_facecolor() for patch in ax.patches]
+    brightness = [color[0] + color[1] + color[2] for color in colors]
+    brightness_by_brand: dict[str, dict[int, float]] = {}
+    for label, value in zip(labels, brightness, strict=True):
+        brand, horsepower = label.split(",")[:2]
+        # horsepower is the number of the "100 hp" part
+        brightness_by_brand.setdefault(brand, {})[int(horsepower.strip().split(" ")[0])] = value
+    for brand_levels in brightness_by_brand.values():
+        levels = sorted(brand_levels)
+        assert all(brand_levels[levels[i]] > brand_levels[levels[i + 1]] for i in range(len(levels) - 1))
+
     plt.close(figure)
