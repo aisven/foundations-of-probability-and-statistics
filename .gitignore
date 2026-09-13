@@ -220,6 +220,7 @@ __marimo__/
 
 tmp/
 local/
+specs/
 
 # uv.lock for now ignored on purpose
 uv.lock

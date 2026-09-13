@@ -8,8 +8,8 @@ help:                       ## show available options
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
 .PHONY: sync
-sync:                       ## uv sync --extra dev --extra test
-	uv sync --extra dev --extra test
+sync:                       ## uv sync --extra dev --extra test --extra notebooks
+	uv sync --extra dev --extra test --extra notebooks
 
 .PHONY: format-and-lint-code
 format-and-lint-code:       ## format and lint code with ruff
